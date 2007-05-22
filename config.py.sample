@@ -1,3 +1,4 @@
+#coding: utf8
 
 # This is the sample configuration file for a blitiri blog engine.
 # If you omit a variable, the default will be used.
