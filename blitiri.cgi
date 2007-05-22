@@ -627,7 +627,8 @@ def handle_cmd():
 	art_path = os.path.realpath(sys.argv[2])
 
 	if os.path.commonprefix([data_path, art_path]) != data_path:
-		print "Error: article must be inside data dir"
+		print "Error: article (%s) must be inside data_path (%s)" % \
+				(art_path, data_path)
 		return 1
 	art_path = art_path[len(data_path):]
 
