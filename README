@@ -1,0 +1,100 @@
+
+blitiri - A single-file blog engine
+===================================
+
+blitiri is a single-file blog engine, written in Python_ and using
+reStructuredText_ for the entries markup.
+
+It's licenced under the BOLA_ license, which is pretty much the same as public
+domain. Read the *LICENSE* file for more information.
+
+
+Installing blitiri
+------------------
+
+First of all, you need a webserver. Put ``blitiri.cgi`` in a directory where
+CGI is allowed.
+
+Then, create a data directory, where you will store your articles.
+
+Finally, configure blitiri by either copying the ``config.py.sample`` as
+``config.py`` to the same directory where you put ``blitiri.cgi``, or editing
+the values inside ``blitiri.cgi``. The former is recommended to simplify
+updates.
+
+
+Using blitiri
+-------------
+
+blitiri manages a database where it knows about your posts and the times they
+were created and updated. You manage the database by running ``blitiri.cgi``
+from the command line. The database is stored in the data directory.
+
+Let's use an example to see how we can make a post. I'll assume you chose
+``/home/me/blog/data/`` as your data directory, and your ``blitiri.cgi`` is at
+``/home/me/web/blitiri.cgi``.
+
+
+First of all, pick a file name inside your data directory; we'll use
+``/home/me/blog/data/test.rst`` as an example, but you can name it whatever
+you want. As long as it's inside the data directory (it can be inside a
+subdirectory too), blitiri doesn't care.
+
+Write this inside::
+
+	Title: Test post
+	Tags: test, tag
+
+	Hello world!
+
+	This is my first post!
+
+
+The format is very simple: first, any number of lines setting special
+attributes like *Title*, *Tags* (comma separated) and *Author* (if omitted,
+defaults to the one specified in the configuration). Then an empty line, and
+then the content in reStructuredText_ syntax.
+
+In that case, the first two lines are special for blitiri: you specify the
+article's title and tags. Then, after the empty line, all the contents are
+interpreted directly as reStructuredText, and blitiri does not touch them in
+any way.
+
+Now, you need to add that post to the database::
+
+	/home/me/web/blitiri.cgi add /home/me/blog/data/test.rst
+
+
+That's it!
+
+To remove the post from the database (but keep the file), run::
+
+	/home/me/web/blitiri.cgi rm /home/me/blog/data/test.rst
+
+
+If you want to update a post (only updates the "updated time", the contents
+are updated on the fly), use::
+
+
+	/home/me/web/blitiri.cgi update /home/me/blog/data/test.rst
+
+
+Personalizing templates
+-----------------------
+
+If you don't like the default look, you can write your own templates for
+blitiri. This needs to be properly documented, but it's very obvious when you
+look at the code.
+
+
+Complaints and suggestions
+--------------------------
+
+If you have any questions, suggestions or comments, please send them to me,
+Alberto Bertogli, at albertito@gmail.com.
+
+
+.. _Python: http://www.python.org/
+.. _reStructuredText: http://docutils.sourceforge.net/rst.html
+.. _BOLA: http://auriga.wearlab.de/~alb/bola/
+

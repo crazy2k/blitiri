@@ -1,0 +1,32 @@
+
+# This is the sample configuration file for a blitiri blog engine.
+# If you omit a variable, the default will be used.
+#
+# If you prefer, you can set the values directly inside blitiri.cgi and not
+# have a configuration file.
+
+
+# Directory where entries are stored
+data_path = "/tmp/blog/data"
+
+# Path where templates are stored. Use an empty string for the built-in
+# default templates. If they're not found, the built-in ones will be used.
+templates_path = "/tmp/blog/templates"
+
+# URL to the blog, including the name. Can be a full URL or just the path.
+blog_url = "/blog/blitiri.cgi"
+
+# Style sheet (CSS) URL. Can be relative or absolute. To use the built-in
+# default, set it to blog_url + "/style".
+css_url = blog_url + "/style"
+
+# Blog title
+title = "I don't like blogs"
+
+# Default author
+author = "Hartmut Kegan"
+
+# Article encoding
+encoding = "utf8"
+
+
