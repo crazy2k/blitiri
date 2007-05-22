@@ -51,11 +51,10 @@ import cgi
 from docutils.core import publish_parts
 
 # Load the config file, if there is one
-if os.path.isfile("config.py"):
-	try:
-		from config import *
-	except:
-		pass
+try:
+	from config import *
+except:
+	pass
 
 
 # Default template
