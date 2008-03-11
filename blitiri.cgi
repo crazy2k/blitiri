@@ -85,6 +85,7 @@ default_main_footer = """
   %(showyear)s: %(monthlinks)s<br/>
   years: %(yearlinks)s<br/>
   subscribe: <a href="%(url)s/atom">atom</a><br/>
+  views: <a href="%(url)s/">blog</a> <a href="%(url)s/list">list</a><br/>
 </div>
 
 </body>
@@ -357,6 +358,10 @@ class Article (object):
 			return -1
 		return 1
 
+	def title_cmp(self, other):
+		return cmp(self.title, other.title)
+
+
 	def load(self):
 		try:
 			raw = open(data_path + '/' + self.path).readlines()
@@ -503,6 +508,20 @@ def render_html(articles, db, actyear = None):
 		print template.get_article_footer(a)
 	print template.get_main_footer()
 
+def render_artlist(articles, db, actyear = None):
+	template = Templates(templates_path, db, actyear)
+	print 'Content-type: text/html; charset=utf-8\n'
+	print template.get_main_header()
+	print '<h2>Articles</h2>'
+	for a in articles:
+		print '<li><a href="%(url)s/uuid/%(uuid)s">%(title)s</a></li>' \
+			% {	'url': blog_url,
+				'uuid': a.uuid,
+				'title': a.title,
+				'author': a.author,
+			}
+	print template.get_main_footer()
+
 def render_atom(articles):
 	if len(articles) > 0:
 		updated = articles[0].updated.isoformat()
@@ -570,6 +589,7 @@ def handle_cgi():
 	atom = False
 	style = False
 	post = False
+	artlist = False
 
 	if os.environ.has_key('PATH_INFO'):
 		path_info = os.environ['PATH_INFO']
@@ -577,7 +597,9 @@ def handle_cgi():
 		atom = path_info == '/atom'
 		tag = path_info.startswith('/tag/')
 		post = path_info.startswith('/post/')
-		if not style and not atom and not post and not tag:
+		artlist = path_info.startswith('/list')
+		if not style and not atom and not post and not tag \
+				and not artlist:
 			date = path_info.split('/')[1:]
 			try:
 				if len(date) > 1 and date[0]:
@@ -605,7 +627,11 @@ def handle_cgi():
 	elif style:
 		render_style()
 	elif post:
-		render_html( [db.get_article(uuid)], year )
+		render_html( [db.get_article(uuid)], db, year )
+	elif artlist:
+		articles = db.get_articles()
+		articles.sort(cmp = Article.title_cmp)
+		render_artlist(articles, db)
 	else:
 		articles = db.get_articles(year, month, day, tags)
 		articles.sort(reverse = True)
