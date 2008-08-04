@@ -50,6 +50,9 @@ import urllib
 import cgi
 from docutils.core import publish_parts
 
+# Before importing the config, add our cwd to the Python path
+sys.path.append(os.getcwd())
+
 # Load the config file, if there is one
 try:
 	from config import *
