@@ -60,6 +60,10 @@ except:
 	pass
 
 
+# Pimp *_path config variables to support relative paths
+data_path = os.path.realpath(data_path)
+templates_path = os.path.realpath(templates_path)
+
 # Default template
 
 default_main_header = """
