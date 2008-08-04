@@ -235,35 +235,31 @@ class Templates (object):
 			'yearlinks': ' '.join(db.get_year_links()),
 		}
 
-	def get_main_header(self):
-		p = self.tpath + '/header.html'
+	def get_template(self, page_name, default_template, extra_vars = None):
+		if extra_vars is None:
+			vars = self.vars
+		else:
+			vars = self.vars.copy()
+			vars.update(extra_vars)
+
+		p = '%s/%s.html' % (self.tpath, page_name)
 		if os.path.isfile(p):
-			return open(p).read() % self.vars
-		return default_main_header % self.vars
+			return open(p).read() % vars
+		return default_template % vars
+
+	def get_main_header(self):
+		return self.get_template('header', default_main_header)
 
 	def get_main_footer(self):
-		p = self.tpath + '/footer.html'
-		if os.path.isfile(p):
-			return open(p).read() % self.vars
-		return default_main_footer % self.vars
+		return self.get_template('footer', default_main_footer)
 
 	def get_article_header(self, article):
-		avars = self.vars.copy()
-		avars.update(article.to_vars())
-
-		p = self.tpath + '/art_header.html'
-		if os.path.isfile(p):
-			return open(p).read() % avars
-		return default_article_header % avars
+		return self.get_template(
+			'art_header', default_article_header, article.to_vars())
 
 	def get_article_footer(self, article):
-		avars = self.vars.copy()
-		avars.update(article.to_vars())
-
-		p = self.tpath + '/art_footer.html'
-		if os.path.isfile(p):
-			return open(p).read() % avars
-		return default_article_footer % avars
+		return self.get_template(
+			'art_footer', default_article_footer, article.to_vars())
 
 
 class Article (object):
