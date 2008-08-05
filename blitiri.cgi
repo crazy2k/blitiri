@@ -202,6 +202,16 @@ div.section h1 {
 
 """
 
+# helper function
+def rst_to_html(rst):
+	settings = {
+		'input_encoding': encoding,
+		'output_encoding': 'utf8',
+	}
+	parts = publish_parts(rst, settings_overrides = settings,
+				writer_name = "html")
+	return parts['body'].encode('utf8')
+
 # find out our URL, needed for syndication
 try:
 	n = os.environ['SERVER_NAME']
@@ -350,14 +360,7 @@ class Article (object):
 			return "Can't open post file<p>"
 		raw = raw[raw.index('\n'):]
 
-		settings = {
-			'input_encoding': encoding,
-			'output_encoding': 'utf8',
-		}
-		parts = publish_parts(self.raw_content,
-				settings_overrides = settings,
-				writer_name = "html")
-		return parts['body'].encode('utf8')
+		return rst_to_html(self.raw_content)
 
 	def to_vars(self):
 		return {
