@@ -354,12 +354,6 @@ class Article (object):
 		self.loaded = True
 
 	def to_html(self):
-		try:
-			raw = open(data_path + '/' + self.path).readlines()
-		except:
-			return "Can't open post file<p>"
-		raw = raw[raw.index('\n'):]
-
 		return rst_to_html(self.raw_content)
 
 	def to_vars(self):
