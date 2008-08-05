@@ -249,29 +249,7 @@ class Templates (object):
 
 	def get_article_header(self, article):
 		avars = self.vars.copy()
-		avars.update( {
-			'arttitle': article.title,
-			'author': article.author,
-			'date': article.created.isoformat(' '),
-			'uuid': article.uuid,
-			'created': article.created.isoformat(' '),
-			'updated': article.updated.isoformat(' '),
-			'tags': article.get_tags_links(),
-
-			'cyear': article.created.year,
-			'cmonth': article.created.month,
-			'cday': article.created.day,
-			'chour': article.created.hour,
-			'cminute': article.created.minute,
-			'csecond': article.created.second,
-
-			'uyear': article.updated.year,
-			'umonth': article.updated.month,
-			'uday': article.updated.day,
-			'uhour': article.updated.hour,
-			'uminute': article.updated.minute,
-			'usecond': article.updated.second,
-		} )
+		avars.update(article.to_vars())
 
 		p = self.tpath + '/art_header.html'
 		if os.path.isfile(p):
@@ -280,29 +258,7 @@ class Templates (object):
 
 	def get_article_footer(self, article):
 		avars = self.vars.copy()
-		avars.update( {
-			'arttitle': article.title,
-			'author': article.author,
-			'date': article.created.isoformat(' '),
-			'uuid': article.uuid,
-			'created': article.created.isoformat(' '),
-			'updated': article.updated.isoformat(' '),
-			'tags': article.get_tags_links(),
-
-			'cyear': article.created.year,
-			'cmonth': article.created.month,
-			'cday': article.created.day,
-			'chour': article.created.hour,
-			'cminute': article.created.minute,
-			'csecond': article.created.second,
-
-			'uyear': article.updated.year,
-			'umonth': article.updated.month,
-			'uday': article.updated.day,
-			'uhour': article.updated.hour,
-			'uminute': article.updated.minute,
-			'usecond': article.updated.second,
-		} )
+		avars.update(article.to_vars())
 
 		p = self.tpath + '/art_footer.html'
 		if os.path.isfile(p):
@@ -406,6 +362,33 @@ class Article (object):
 				settings_overrides = settings,
 				writer_name = "html")
 		return parts['body'].encode('utf8')
+
+	def to_vars(self):
+		return {
+			'arttitle': self.title,
+			'author': self.author,
+			'date': self.created.isoformat(' '),
+			'uuid': self.uuid,
+			'tags': self.get_tags_links(),
+
+			'created': self.created.isoformat(' '),
+			'ciso': self.created.isoformat(),
+			'cyear': self.created.year,
+			'cmonth': self.created.month,
+			'cday': self.created.day,
+			'chour': self.created.hour,
+			'cminute': self.created.minute,
+			'csecond': self.created.second,
+
+			'updated': self.updated.isoformat(' '),
+			'uiso': self.updated.isoformat(),
+			'uyear': self.updated.year,
+			'umonth': self.updated.month,
+			'uday': self.updated.day,
+			'uhour': self.updated.hour,
+			'uminute': self.updated.minute,
+			'usecond': self.updated.second,
+		}
 
 	def get_tags_links(self):
 		l = []
@@ -549,6 +532,11 @@ def render_atom(articles):
 	}
 
 	for a in articles:
+		vars = a.to_vars()
+		vars.update( {
+			'url': full_url,
+			'contents': a.to_html(),
+		} )
 		print """
   <entry>
     <title>%(arttitle)s</title>
@@ -556,24 +544,15 @@ def render_atom(articles):
     <link href="%(url)s/post/%(uuid)s" />
     <id>%(url)s/post/%(uuid)s</id>
     <summary>%(arttitle)s</summary>
-    <published>%(created)sZ</published>
-    <updated>%(updated)sZ</updated>
+    <published>%(ciso)sZ</published>
+    <updated>%(uiso)sZ</updated>
     <content type="xhtml">
       <div xmlns="http://www.w3.org/1999/xhtml"><p>
 %(contents)s
       </p></div>
     </content>
   </entry>
-		""" % {
-			'arttitle': a.title,
-			'author': a.author,
-			'uuid': a.uuid,
-			'url': full_url,
-			'created': a.created.isoformat(),
-			'updated': a.updated.isoformat(),
-			'contents': a.to_html(),
-		}
-
+		""" % vars
 	print "</feed>"
 
 
