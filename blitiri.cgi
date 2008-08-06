@@ -273,10 +273,10 @@ class Templates (object):
 
 
 class Article (object):
-	def __init__(self, path):
+	def __init__(self, path, created = None, updated = None):
 		self.path = path
-		self.created = None
-		self.updated = None
+		self.created = created
+		self.updated = updated
 		self.uuid = "%08x" % zlib.crc32(self.path)
 
 		self.loaded = False
@@ -433,11 +433,9 @@ class DB (object):
 			except:
 				continue
 
-			a = Article(l[0])
-			a.created = datetime.datetime.fromtimestamp(
-						float(l[1]) )
-			a.updated = datetime.datetime.fromtimestamp(
-						float(l[2]))
+			a = Article(l[0],
+				datetime.datetime.fromtimestamp(float(l[1])),
+				datetime.datetime.fromtimestamp(float(l[2])))
 			self.uuids[a.uuid] = a
 			self.actyears.add(a.created.year)
 			self.actmonths.add((a.created.year, a.created.month))
@@ -638,14 +636,13 @@ def handle_cmd():
 	db = DB(data_path + '/db')
 
 	if cmd == 'add':
-		article = Article(art_path)
+		article = Article(art_path, datetime.datetime.now(),
+					datetime.datetime.now())
 		for a in db.articles:
 			if a == article:
 				print 'Error: article already exists'
 				return 1
 		db.articles.append(article)
-		article.created = datetime.datetime.now()
-		article.updated = datetime.datetime.now()
 		db.save()
 	elif cmd == 'rm':
 		article = Article(art_path)
