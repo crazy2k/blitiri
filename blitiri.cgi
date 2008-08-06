@@ -118,7 +118,8 @@ default_article_header = """
 <a class="date" href="%(url)s/%(uyear)d/%(umonth)d/%(uday)d/">%(uday)02d</a>\
     %(uhour)02d:%(uminute)02d)</span><br/>
   <span class="tags">tagged %(tags)s</span> -
-  <span class="comments">with %(comments)s comment(s)</span>
+  <span class="comments">with %(comments)s
+    <a href="%(url)s/post/%(uuid)s#comments">comment(s)</a></span>
 </span><br/>
 <p/>
 <div class="artbody">
