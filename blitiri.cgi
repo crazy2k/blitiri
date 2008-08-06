@@ -335,8 +335,12 @@ class Article (object):
 
 
 	def load(self):
-		# os.path.join ignore other paths if one starts with a slash
-		filename = os.path.join(data_path, self.path[1:])
+		# XXX this tweak is only needed for old DB format, where
+		# article's paths started with a slash
+		path = self.path
+		if path.startswith('/'):
+			path = path[1:]
+		filename = os.path.join(data_path, path)
 		try:
 			raw = open(filename).readlines()
 		except:
@@ -637,7 +641,7 @@ def handle_cmd():
 		print "Error: article (%s) must be inside data_path (%s)" % \
 				(art_path, data_path)
 		return 1
-	art_path = art_path[len(data_path):]
+	art_path = art_path[len(data_path)+1:]
 
 	db_filename = os.path.join(data_path, 'db')
 	if not os.path.isfile(db_filename):
