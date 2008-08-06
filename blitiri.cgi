@@ -335,8 +335,10 @@ class Article (object):
 
 
 	def load(self):
+		# os.path.join ignore other paths if one starts with a slash
+		filename = os.path.join(data_path, self.path[1:])
 		try:
-			raw = open(data_path + '/' + self.path).readlines()
+			raw = open(filename).readlines()
 		except:
 			return
 
@@ -599,7 +601,7 @@ def handle_cgi():
 			t = urllib.unquote_plus(t)
 			tags = set((t,))
 
-	db = ArticleDB(data_path + '/db')
+	db = ArticleDB(os.path.join(data_path, 'db'))
 	if atom:
 		articles = db.get_articles(tags = tags)
 		articles.sort(reverse = True)
@@ -637,9 +639,10 @@ def handle_cmd():
 		return 1
 	art_path = art_path[len(data_path):]
 
-	if not os.path.isfile(data_path + '/db'):
-		open(data_path + '/db', 'w').write('')
-	db = ArticleDB(data_path + '/db')
+	db_filename = os.path.join(data_path, 'db')
+	if not os.path.isfile(db_filename):
+		open(db_filename, 'w').write('')
+	db = ArticleDB(db_filename)
 
 	if cmd == 'add':
 		article = Article(art_path, datetime.datetime.now(),
