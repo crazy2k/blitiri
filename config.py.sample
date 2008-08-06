@@ -10,6 +10,9 @@
 # Directory where entries are stored
 data_path = "/tmp/blog/data"
 
+# Directory where comments are stored (must be writeable by the web server)
+comments_path = "/tmp/blog/comments"
+
 # Path where templates are stored. Use an empty string for the built-in
 # default templates. If they're not found, the built-in ones will be used.
 templates_path = "/tmp/blog/templates"

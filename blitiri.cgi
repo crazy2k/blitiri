@@ -14,6 +14,9 @@
 # Directory where entries are stored
 data_path = "/tmp/blog/data"
 
+# Directory where comments are stored (must be writeable by the web server)
+comments_path = "/tmp/blog/comments"
+
 # Path where templates are stored. Use an empty string for the built-in
 # default templates. If they're not found, the built-in ones will be used.
 templates_path = "/tmp/blog/templates"
@@ -114,7 +117,8 @@ default_article_header = """
 <a class="date" href="%(url)s/%(uyear)d/%(umonth)d/">%(umonth)02d</a>-\
 <a class="date" href="%(url)s/%(uyear)d/%(umonth)d/%(uday)d/">%(uday)02d</a>\
     %(uhour)02d:%(uminute)02d)</span><br/>
-  <span class="tags">tagged %(tags)s</span>
+  <span class="tags">tagged %(tags)s</span> -
+  <span class="comments">with %(comments)s comment(s)</span>
 </span><br/>
 <p/>
 <div class="artbody">
@@ -125,6 +129,23 @@ default_article_footer = """
 </div>
 </div>
 """
+
+default_comment_header = """
+<div class="comment">
+<a name="comment-%(number)d" />
+<h3><a href="#comment-%(number)d">Comment #%(number)d</a></h3>
+<span class="cominfo">by <a href="%(link)s">%(author)s</a>
+  on %(year)04d-%(month)02d-%(day)02d %(hour)02d:%(minute)02d</span>
+<p/>
+<div class="combody">
+"""
+
+default_comment_footer = """
+<p/>
+</div>
+</div>
+"""
+
 
 # Default CSS
 default_css = """
@@ -152,7 +173,14 @@ h2 {
 	border-bottom: 1px solid #99C;
 }
 
-h1 a, h2 a {
+h3 {
+	font-size: small;
+	font-weigth: none;
+	margin-bottom: 1pt;
+	border-bottom: 1px solid #99C;
+}
+
+h1 a, h2 a, h3 a {
 	text-decoration: none;
 	color: black;
 }
@@ -177,6 +205,37 @@ div.artbody {
 
 div.article {
 	margin-bottom: 2em;
+}
+
+span.cominfo {
+	font-size: xx-small;
+}
+
+span.cominfo a {
+	text-decoration: none;
+	color: #339;
+}
+
+span.cominfo a:hover {
+	text-decoration: none;
+	color: blue;
+}
+
+div.combody {
+	margin-left: 2em;
+}
+
+div.comment {
+	margin-left: 1em;
+	margin-bottom: 1em;
+}
+
+hr {
+	float: left;
+	height: 2px;
+	border: 0;
+	background-color: #99F;
+	width: 60%;
 }
 
 div.footer {
@@ -277,6 +336,135 @@ class Templates (object):
 		return self.get_template(
 			'art_footer', default_article_footer, article.to_vars())
 
+	def get_comment_header(self, comment):
+		return self.get_template(
+			'com_header', default_comment_header, comment.to_vars())
+
+	def get_comment_footer(self, comment):
+		return self.get_template(
+			'com_footer', default_comment_footer, comment.to_vars())
+
+
+class Comment (object):
+	def __init__(self, article, number, created = None):
+		self.article = article
+		self.number = number
+		if created is None:
+			self.created = datetime.datetime.now()
+		else:
+			self.created = created
+
+		self.loaded = False
+
+		# loaded on demand
+		self._author = author
+		self._link = ''
+		self._raw_content = 'Removed comment'
+
+
+	def get_author(self):
+		if not self.loaded:
+			self.load()
+		return self._author
+	author = property(fget = get_author)
+
+	def get_link(self):
+		if not self.loaded:
+			self.load()
+		return self._link
+	link = property(fget = get_link)
+
+	def get_raw_content(self):
+		if not self.loaded:
+			self.load()
+		return self._raw_content
+	raw_content = property(fget = get_raw_content)
+
+
+	def load(self):
+		filename = os.path.join(comments_path, self.article.uuid,
+					str(self.number))
+		try:
+			raw = open(filename).readlines()
+		except:
+			return
+
+		count = 0
+		for l in raw:
+			if ':' in l:
+				name, value = l.split(':', 1)
+				if name.lower() == 'author':
+					self._author = value.strip()
+				elif name.lower() == 'link':
+					self._link = value.strip()
+			elif l == '\n':
+				# end of header
+				break
+			count += 1
+		self._raw_content = ''.join(raw[count + 1:])
+		self.loaded = True
+
+	def to_html(self):
+		return rst_to_html(self.raw_content)
+
+	def to_vars(self):
+		return {
+			'number': self.number,
+			'author': sanitize(self.author),
+			'link': sanitize(self.link),
+			'date': self.created.isoformat(' '),
+			'created': self.created.isoformat(' '),
+
+			'year': self.created.year,
+			'month': self.created.month,
+			'day': self.created.day,
+			'hour': self.created.hour,
+			'minute': self.created.minute,
+			'second': self.created.second,
+		}
+
+class CommentDB (object):
+	def __init__(self, article):
+		self.path = os.path.join(comments_path, article.uuid)
+		self.comments = []
+		self.load(article)
+
+	def load(self, article):
+		try:
+			f = open(os.path.join(self.path, 'db'))
+		except:
+			return
+
+		for l in f:
+			# Each line has the following comma separated format:
+			# number, created (epoch)
+			# Empty lines are meaningful and represent removed
+			# comments (so we can preserve the comment number)
+			l = l.split(',')
+			try:
+				n = int(l[0])
+				d = datetime.datetime.fromtimestamp(float(l[1]))
+			except:
+				# Removed/invalid comment
+				self.comments.append(None)
+				continue
+			self.comments.append(Comment(article, n, d))
+
+	def save(self):
+		old_db = os.path.join(self.path, 'db')
+		new_db = os.path.join(self.path, 'db.tmp')
+		f = open(new_db, 'w')
+		for c in self.comments:
+			s = ''
+			if c is not None:
+				s = ''
+				s += str(c.number) + ', '
+				s += str(time.mktime(c.created.timetuple()))
+			s += '\n'
+			f.write(s)
+		f.close()
+		os.rename(new_db, old_db)
+
 
 class Article (object):
 	def __init__(self, path, created = None, updated = None):
@@ -292,6 +480,7 @@ class Article (object):
 		self._author = author
 		self._tags = []
 		self._raw_content = ''
+		self._comments = []
 
 
 	def get_title(self):
@@ -317,6 +506,12 @@ class Article (object):
 			self.load()
 		return self._raw_content
 	raw_content = property(fget = get_raw_content)
+
+	def get_comments(self):
+		if not self.loaded:
+			self.load()
+		return self._comments
+	comments = property(fget = get_comments)
 
 
 	def __cmp__(self, other):
@@ -363,6 +558,8 @@ class Article (object):
 				break
 			count += 1
 		self._raw_content = ''.join(raw[count + 1:])
+		db = CommentDB(self)
+		self._comments = db.comments
 		self.loaded = True
 
 	def to_html(self):
@@ -375,6 +572,7 @@ class Article (object):
 			'date': self.created.isoformat(' '),
 			'uuid': self.uuid,
 			'tags': self.get_tags_links(),
+			'comments': len(self.comments),
 
 			'created': self.created.isoformat(' '),
 			'ciso': self.created.isoformat(),
@@ -488,7 +686,7 @@ class ArticleDB (object):
 #
 
 
-def render_html(articles, db, actyear = None):
+def render_html(articles, db, actyear = None, show_comments = False):
 	template = Templates(templates_path, db, actyear)
 	print 'Content-type: text/html; charset=utf-8\n'
 	print template.get_main_header()
@@ -496,6 +694,14 @@ def render_html(articles, db, actyear = None):
 		print template.get_article_header(a)
 		print a.to_html()
 		print template.get_article_footer(a)
+		if show_comments:
+			print '<a name="comments" />'
+			for c in a.comments:
+				if c is None:
+					continue
+				print template.get_comment_header(c)
+				print c.to_html()
+				print template.get_comment_footer(c)
 	print template.get_main_footer()
 
 def render_artlist(articles, db, actyear = None):
@@ -613,7 +819,7 @@ def handle_cgi():
 	elif style:
 		render_style()
 	elif post:
-		render_html( [db.get_article(uuid)], db, year )
+		render_html( [db.get_article(uuid)], db, year, True )
 	elif artlist:
 		articles = db.get_articles()
 		articles.sort(cmp = Article.title_cmp)
