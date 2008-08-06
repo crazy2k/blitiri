@@ -399,7 +399,7 @@ class Article (object):
 		return ', '.join(l)
 
 
-class DB (object):
+class ArticleDB (object):
 	def __init__(self, dbpath):
 		self.dbpath = dbpath
 		self.articles = []
@@ -599,7 +599,7 @@ def handle_cgi():
 			t = urllib.unquote_plus(t)
 			tags = set((t,))
 
-	db = DB(data_path + '/db')
+	db = ArticleDB(data_path + '/db')
 	if atom:
 		articles = db.get_articles(tags = tags)
 		articles.sort(reverse = True)
@@ -639,7 +639,7 @@ def handle_cmd():
 
 	if not os.path.isfile(data_path + '/db'):
 		open(data_path + '/db', 'w').write('')
-	db = DB(data_path + '/db')
+	db = ArticleDB(data_path + '/db')
 
 	if cmd == 'add':
 		article = Article(art_path, datetime.datetime.now(),
