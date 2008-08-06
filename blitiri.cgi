@@ -202,7 +202,7 @@ div.section h1 {
 
 """
 
-# helper function
+# helper functions
 def rst_to_html(rst):
 	settings = {
 		'input_encoding': encoding,
@@ -211,6 +211,12 @@ def rst_to_html(rst):
 	parts = publish_parts(rst, settings_overrides = settings,
 				writer_name = "html")
 	return parts['body'].encode('utf8')
+
+def sanitize(obj):
+	if isinstance(obj, basestring):
+		return cgi.escape(obj, True)
+	return obj
+
 
 # find out our URL, needed for syndication
 try:
@@ -358,8 +364,8 @@ class Article (object):
 
 	def to_vars(self):
 		return {
-			'arttitle': self.title,
-			'author': self.author,
+			'arttitle': sanitize(self.title),
+			'author': sanitize(self.author),
 			'date': self.created.isoformat(' '),
 			'uuid': self.uuid,
 			'tags': self.get_tags_links(),
@@ -389,7 +395,7 @@ class Article (object):
 		tags.sort()
 		for t in tags:
 			l.append('<a class="tag" href="%s/tag/%s">%s</a>' % \
-				(blog_url, urllib.quote(t), t) )
+				(blog_url, urllib.quote(t), sanitize(t) ))
 		return ', '.join(l)
 
 
