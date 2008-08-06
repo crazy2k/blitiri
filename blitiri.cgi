@@ -339,9 +339,9 @@ class Article (object):
 			if ':' in l:
 				name, value = l.split(':', 1)
 				if name.lower() == 'title':
-					self._title = value
+					self._title = value.strip()
 				elif name.lower() == 'author':
-					self._author = value
+					self._author = value.strip()
 				elif name.lower() == 'tags':
 					ts = value.split(',')
 					ts = [t.strip() for t in ts]
