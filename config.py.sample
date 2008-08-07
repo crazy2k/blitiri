@@ -10,6 +10,9 @@
 # Directory where entries are stored
 data_path = "/tmp/blog/data"
 
+# Are comments allowed? (if False, comments_path option is not used)
+enable_comments = False
+
 # Directory where comments are stored (must be writeable by the web server)
 comments_path = "/tmp/blog/comments"
 

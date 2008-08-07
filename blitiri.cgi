@@ -14,6 +14,9 @@
 # Directory where entries are stored
 data_path = "/tmp/blog/data"
 
+# Are comments allowed? (if False, comments_path option is not used)
+enable_comments = False
+
 # Directory where comments are stored (must be writeable by the web server)
 comments_path = "/tmp/blog/comments"
 
@@ -820,7 +823,7 @@ def handle_cgi():
 	elif style:
 		render_style()
 	elif post:
-		render_html( [db.get_article(uuid)], db, year, True )
+		render_html( [db.get_article(uuid)], db, year, enable_comments )
 	elif artlist:
 		articles = db.get_articles()
 		articles.sort(cmp = Article.title_cmp)
