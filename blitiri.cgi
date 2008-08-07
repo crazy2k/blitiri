@@ -131,16 +131,17 @@ default_css = """
 body {
 	font-family: sans-serif;
 	font-size: small;
+	width: 52em;
 }
 
 div.content {
-	width: 50%;
+	width: 96%;
 }
 
 h1 {
 	font-size: large;
 	border-bottom: 2px solid #99F;
-	width: 60%;
+	width: 100%;
 	margin-bottom: 1em;
 }
 
@@ -183,7 +184,7 @@ hr {
 	height: 2px;
 	border: 0;
 	background-color: #99F;
-	width: 60%;
+	width: 100%;
 }
 
 div.footer {
