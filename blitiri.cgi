@@ -48,6 +48,8 @@ encoding = "utf8"
 
 import sys
 import os
+import errno
+import shutil
 import time
 import datetime
 import calendar
@@ -150,6 +152,47 @@ default_comment_footer = """
 </div>
 """
 
+default_comment_form = """
+<div class="comform">
+<a name="comment" />
+<h3 class="comform"><a href="#comment">Your comment</a></h3>
+<div class="comforminner">
+<form method="%(form_method)s" action="%(form_action)s">
+<div class="comformauthor">
+  <label for="comformauthor">Your name</label>
+  <input type="text" class="comformauthor" id="comformauthor"
+         name="comformauthor" />
+</div>
+<div class="comformlink">
+  <label for="comformlink">Your link
+    <span class="comformoptional">(optional, will be published)</span></label>
+  <input type="text" class="comformlink" id="comformlink"
+         name="comformlink" />
+  <div class="comformhelp">
+    like <span class="formurlexample">http://www.example.com/</span>
+    or <span class="formurlexample">mailto:you@example.com</span>
+  </div>
+</div>
+<div class="comformbody">
+  <label for="comformbody" class="comformbody">The comment</label>
+  <textarea class="comformbody" id="comformbody" name="comformbody" rows="15"
+            cols="80"></textarea>
+  <div class="comformhelp">
+    in
+    <a href="http://docutils.sourceforge.net/docs/user/rst/quickref.html">\
+RestructuredText</a> format, please
+  </div>
+</div>
+<div class="comformsend">
+  <button type="submit" class="comformsend" id="comformsend" name="comformsend">
+    Send comment
+  </button>
+</div>
+</form>
+</div>
+</div>
+"""
+
 
 # Default CSS
 default_css = """
@@ -234,6 +277,57 @@ div.comment {
 	margin-bottom: 1em;
 }
 
+div.comforminner {
+	margin-left: 2em;
+}
+
+div.comform {
+	margin-left: 1em;
+	margin-bottom: 1em;
+}
+
+div.comform label {
+	display: block;
+	border-bottom: 1px solid #99C;
+	margin-top: 0.5em;
+	clear: both;
+}
+
+div.comform span.comformoptional {
+	font-size: xx-small;
+	color: #666;
+}
+
+div.comform input {
+	font-size: small;
+	width: 99%;
+}
+
+div.comformhelp {
+	font-size: xx-small;
+	text-align: right;
+	float: right;
+}
+
+span.formurlexample {
+	color: #111;
+	background-color: #EEF;
+	font-family: monospace;
+	padding-left: 0.2em;
+	padding-right: 0.2em;
+}
+
+textarea.comformbody {
+	font-family: monospace;
+	font-size: small;
+	width: 99%;
+	height: 15em;
+}
+
+button.comformsend {
+	margin-top: 0.5em;
+}
+
 hr {
 	float: left;
 	height: 2px;
@@ -270,10 +364,19 @@ def rst_to_html(rst):
 	settings = {
 		'input_encoding': encoding,
 		'output_encoding': 'utf8',
+		'halt_level': 1,
+		'traceback':  1,
 	}
 	parts = publish_parts(rst, settings_overrides = settings,
 				writer_name = "html")
 	return parts['body'].encode('utf8')
+
+def valid_rst(rst):
+	try:
+		rst_to_html(rst)
+		return True
+	except:
+		return False
 
 def sanitize(obj):
 	if isinstance(obj, basestring):
@@ -348,6 +451,13 @@ class Templates (object):
 		return self.get_template(
 			'com_footer', default_comment_footer, comment.to_vars())
 
+	def get_comment_form(self, article, method, action):
+		vars = article.to_vars()
+		vars['form_method'] = method
+		vars['form_action'] = action
+		return self.get_template(
+			'com_footer', default_comment_form, vars)
+
 
 class Comment (object):
 	def __init__(self, article, number, created = None):
@@ -385,6 +495,14 @@ class Comment (object):
 	raw_content = property(fget = get_raw_content)
 
 
+	def set(self, author, raw_content, link = '', created = None):
+		self.loaded = True
+		self._author = author
+		self._raw_content = raw_content
+		self._link = link
+		self.created = created or datetime.datetime.now()
+
+
 	def load(self):
 		filename = os.path.join(comments_path, self.article.uuid,
 					str(self.number))
@@ -407,6 +525,19 @@ class Comment (object):
 			count += 1
 		self._raw_content = ''.join(raw[count + 1:])
 		self.loaded = True
+
+	def save(self):
+		filename = os.path.join(comments_path, self.article.uuid,
+					str(self.number))
+		try:
+			f = open(filename, 'w')
+			f.write('Author: %s\n' % self.author)
+			f.write('Link: %s\n' % self.link)
+			f.write('\n')
+			f.write(self.raw_content)
+		except:
+			return
+
 
 	def to_html(self):
 		return rst_to_html(self.raw_content)
@@ -531,6 +662,13 @@ class Article (object):
 
 	def title_cmp(self, other):
 		return cmp(self.title, other.title)
+
+
+	def add_comment(self, author, raw_content, link = ''):
+		c = Comment(self, len(self.comments))
+		c.set(author, raw_content, link)
+		self.comments.append(c)
+		return c
 
 
 	def load(self):
@@ -690,9 +828,14 @@ class ArticleDB (object):
 #
 
 
-def render_html(articles, db, actyear = None, show_comments = False):
+def render_html(articles, db, actyear = None, show_comments = False,
+		redirect =  None):
+	if redirect is not None:
+		print 'Status: 303 See Other\r\n',
+		print 'Location: %s\r\n' % redirect,
+	print 'Content-type: text/html; charset=utf-8\r\n',
+	print '\r\n',
 	template = Templates(templates_path, db, actyear)
-	print 'Content-type: text/html; charset=utf-8\n'
 	print template.get_main_header()
 	for a in articles:
 		print template.get_article_header(a)
@@ -706,6 +849,8 @@ def render_html(articles, db, actyear = None, show_comments = False):
 				print template.get_comment_header(c)
 				print c.to_html()
 				print template.get_comment_footer(c)
+			print template.get_comment_form(a, 'post',
+					blog_url + '/comment/' + a.uuid)
 	print template.get_main_footer()
 
 def render_artlist(articles, db, actyear = None):
@@ -786,6 +931,7 @@ def handle_cgi():
 	style = False
 	post = False
 	artlist = False
+	comment = False
 
 	if os.environ.has_key('PATH_INFO'):
 		path_info = os.environ['PATH_INFO']
@@ -794,8 +940,9 @@ def handle_cgi():
 		tag = path_info.startswith('/tag/')
 		post = path_info.startswith('/post/')
 		artlist = path_info.startswith('/list')
+		comment = path_info.startswith('/comment/') and enable_comments
 		if not style and not atom and not post and not tag \
-				and not artlist:
+				and not comment and not artlist:
 			date = path_info.split('/')[1:]
 			try:
 				if len(date) > 1 and date[0]:
@@ -814,6 +961,12 @@ def handle_cgi():
 			t = t.replace('/', '')
 			t = urllib.unquote_plus(t)
 			tags = set((t,))
+		elif comment:
+			uuid = path_info.replace('/comment/', '')
+			uuid = uuid.replace('/', '')
+			author = form.getfirst('comformauthor', '')
+			link = form.getfirst('comformlink', '')
+			body = form.getfirst('comformbody', '')
 
 	db = ArticleDB(os.path.join(data_path, 'db'))
 	if atom:
@@ -828,6 +981,21 @@ def handle_cgi():
 		articles = db.get_articles()
 		articles.sort(cmp = Article.title_cmp)
 		render_artlist(articles, db)
+	elif comment:
+		author = author.strip().replace('\n', ' ')
+		link = link.strip().replace('\n', ' ')
+		body = body.strip()
+		article = db.get_article(uuid)
+		redirect = blog_url + '/post/' + uuid + '#comment'
+		if author and body and valid_rst(body):
+			c = article.add_comment(author, body, link)
+			c.save()
+			cdb = CommentDB(article)
+			cdb.comments = article.comments
+			cdb.save()
+			redirect += '-' + str(c.number)
+		render_html( [article], db, year, enable_comments,
+				redirect = redirect )
 	else:
 		articles = db.get_articles(year, month, day, tags)
 		articles.sort(reverse = True)
@@ -867,6 +1035,17 @@ def handle_cmd():
 				return 1
 		db.articles.append(article)
 		db.save()
+		if enable_comments:
+			comment_dir = os.path.join(comments_path, article.uuid)
+			try:
+				os.mkdir(comment_dir, 0775)
+			except OSError, e:
+				if e.errno != errno.EEXIST:
+					print "Error: can't create comments " \
+						"directory %s (%s)" \
+							% (comment_dir, e)
+				# otherwise is probably a removed and re-added
+				# article
 	elif cmd == 'rm':
 		article = Article(art_path)
 		for a in db.articles:
@@ -875,8 +1054,12 @@ def handle_cmd():
 		else:
 			print "Error: no such article"
 			return 1
+		if enable_comments:
+			r = raw_input('Remove comments [y/N]? ')
 		db.articles.remove(a)
 		db.save()
+		if enable_comments and r.lower() == 'y':
+			shutil.rmtree(os.path.join(comments_path, a.uuid))
 	elif cmd == 'update':
 		article = Article(art_path)
 		for a in db.articles:
