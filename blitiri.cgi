@@ -86,8 +86,7 @@ default_main_header = """
 """
 
 default_main_footer = """
-</div><p/>
-<hr/><br/>
+</div>
 <div class="footer">
   %(showyear)s: %(monthlinks)s<br/>
   years: %(yearlinks)s<br/>
@@ -179,15 +178,11 @@ div.article {
 	margin-bottom: 2em;
 }
 
-hr {
-	float: left;
-	height: 2px;
-	border: 0;
-	background-color: #99F;
-	width: 100%;
-}
-
 div.footer {
+	margin-top: 1em;
+	padding-top: 0.4em;
+	width: 100%;
+	border-top: 2px solid #99F;
 	font-size: x-small;
 }
 
