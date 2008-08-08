@@ -66,15 +66,16 @@ templates_path = os.path.realpath(templates_path)
 
 # Default template
 
-default_main_header = """
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+default_main_header = """\
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+          "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <link rel="alternate" title="%(title)s" href="%(fullurl)s/atom"
 	type="application/atom+xml" />
-<link href="%(css_url)s" rel="stylesheet"
-	type="text/css" />
+<link href="%(css_url)s" rel="stylesheet" type="text/css" />
 <title>%(title)s</title>
 </head>
 
