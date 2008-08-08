@@ -582,7 +582,7 @@ def render_atom(articles):
 
 
 def render_style():
-	print 'Content-type: text/plain\n'
+	print 'Content-type: text/css\r\n\r\n',
 	print default_css
 
 def handle_cgi():
