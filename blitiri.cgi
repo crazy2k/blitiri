@@ -57,6 +57,7 @@ import zlib
 import urllib
 import cgi
 from docutils.core import publish_parts
+from docutils.utils import SystemMessage
 
 # Before importing the config, add our cwd to the Python path
 sys.path.append(os.getcwd())
@@ -159,24 +160,26 @@ default_comment_form = """
 <div class="comforminner">
 <form method="%(form_method)s" action="%(form_action)s">
 <div class="comformauthor">
-  <label for="comformauthor">Your name</label>
+  <label for="comformauthor">Your name %(form_author_error)s</label>
   <input type="text" class="comformauthor" id="comformauthor"
-         name="comformauthor" />
+         name="comformauthor" value="%(form_author)s" />
 </div>
 <div class="comformlink">
   <label for="comformlink">Your link
-    <span class="comformoptional">(optional, will be published)</span></label>
+    <span class="comformoptional">(optional, will be published)</span>
+      %(form_link_error)s</label>
   <input type="text" class="comformlink" id="comformlink"
-         name="comformlink" />
+         name="comformlink" value="%(form_link)s" />
   <div class="comformhelp">
     like <span class="formurlexample">http://www.example.com/</span>
     or <span class="formurlexample">mailto:you@example.com</span>
   </div>
 </div>
 <div class="comformbody">
-  <label for="comformbody" class="comformbody">The comment</label>
+  <label for="comformbody" class="comformbody">The comment
+    %(form_body_error)s</label>
   <textarea class="comformbody" id="comformbody" name="comformbody" rows="15"
-            cols="80"></textarea>
+            cols="80">%(form_body)s</textarea>
   <div class="comformhelp">
     in
     <a href="http://docutils.sourceforge.net/docs/user/rst/quickref.html">\
@@ -192,6 +195,8 @@ RestructuredText</a> format, please
 </div>
 </div>
 """
+
+default_comment_error = '<span class="comformerror">(%(error)s)</span>'
 
 
 # Default CSS
@@ -328,6 +333,12 @@ button.comformsend {
 	margin-top: 0.5em;
 }
 
+span.comformerror {
+	color: #900;
+	font-size: xx-small;
+	margin-left: 0.5em;
+}
+
 hr {
 	float: left;
 	height: 2px;
@@ -371,12 +382,22 @@ def rst_to_html(rst):
 				writer_name = "html")
 	return parts['body'].encode('utf8')
 
-def valid_rst(rst):
+def validate_rst(rst):
 	try:
 		rst_to_html(rst)
-		return True
-	except:
-		return False
+		return None
+	except SystemMessage, e:
+		desc = e.args[0].encode('utf-8') # the error string
+		desc = desc[9:] # remove "<string>:"
+		line = int(desc[:desc.find(':')]) # get just the line number
+		desc = desc[desc.find(')')+2:-1] # remove (LEVEL/N)
+		try:
+			desc, context = desc.split('\n', 1)
+		except ValueError:
+			context = ''
+		if desc.endswith('.'):
+			desc = desc[:-1]
+		return (line, desc, context)
 
 def sanitize(obj):
 	if isinstance(obj, basestring):
@@ -457,12 +478,45 @@ class Templates (object):
 		return self.get_template(
 			'com_footer', default_comment_footer, comment.to_vars())
 
-	def get_comment_form(self, article, method, action):
+	def get_comment_form(self, article, form_data):
 		vars = article.to_vars()
-		vars['form_method'] = method
-		vars['form_action'] = action
+		vars.update(form_data.to_vars(self))
 		return self.get_template(
 			'com_form', default_comment_form, vars)
+
+	def get_comment_error(self, error):
+		return self.get_template(
+			'com_error', default_comment_error, dict(error=error))
+
+
+class CommentFormData (object):
+	def __init__(self, author = '', link = '', body = ''):
+		self.author = author
+		self.link = link
+		self.body = body
+		self.author_error = ''
+		self.link_error = ''
+		self.body_error = ''
+		self.action = ''
+		self.method = 'post'
+
+	def to_vars(self, template):
+		render_error = template.get_comment_error
+		a_error = self.author_error and render_error(self.author_error)
+		l_error = self.link_error and render_error(self.link_error)
+		b_error = self.body_error and render_error(self.body_error)
+		return {
+			'form_author': sanitize(self.author),
+			'form_link': sanitize(self.link),
+			'form_body': sanitize(self.body),
+
+			'form_author_error': a_error,
+			'form_link_error': l_error,
+			'form_body_error': b_error,
+
+			'form_action': self.action,
+			'form_method': self.method,
+		}
 
 
 class Comment (object):
@@ -833,10 +887,22 @@ class ArticleDB (object):
 # Main
 #
 
+def render_comments(article, template, form_data):
+	print '<a name="comments" />'
+	for c in article.comments:
+		if c is None:
+			continue
+		print template.get_comment_header(c)
+		print c.to_html()
+		print template.get_comment_footer(c)
+	if not form_data:
+		form_data = CommentFormData()
+	form_data.action = blog_url + '/comment/' + article.uuid + '#comment'
+	print template.get_comment_form(article, form_data)		,
 
 def render_html(articles, db, actyear = None, show_comments = False,
-		redirect =  None):
-	if redirect is not None:
+		redirect =  None, form_data = None):
+	if redirect:
 		print 'Status: 303 See Other\r\n',
 		print 'Location: %s\r\n' % redirect,
 	print 'Content-type: text/html; charset=utf-8\r\n',
@@ -848,15 +914,7 @@ def render_html(articles, db, actyear = None, show_comments = False,
 		print a.to_html()
 		print template.get_article_footer(a)
 		if show_comments:
-			print '<a name="comments" />'
-			for c in a.comments:
-				if c is None:
-					continue
-				print template.get_comment_header(c)
-				print c.to_html()
-				print template.get_comment_footer(c)
-			print template.get_comment_form(a, 'post',
-					blog_url + '/comment/' + a.uuid)
+			render_comments(a, template, form_data)
 	print template.get_main_footer()
 
 def render_artlist(articles, db, actyear = None):
@@ -969,6 +1027,7 @@ def handle_cgi():
 			tags = set((t,))
 		elif comment:
 			uuid = path_info.replace('/comment/', '')
+			uuid = uuid.replace('#comment', '')
 			uuid = uuid.replace('/', '')
 			author = form.getfirst('comformauthor', '')
 			link = form.getfirst('comformlink', '')
@@ -988,20 +1047,34 @@ def handle_cgi():
 		articles.sort(cmp = Article.title_cmp)
 		render_artlist(articles, db)
 	elif comment:
-		author = author.strip().replace('\n', ' ')
-		link = link.strip().replace('\n', ' ')
-		body = body.strip()
+		form_data = CommentFormData(author.strip().replace('\n', ' '),
+				link.strip().replace('\n', ' '), body.strip())
 		article = db.get_article(uuid)
-		redirect = blog_url + '/post/' + uuid + '#comment'
-		if author and body and valid_rst(body):
+		redirect = False
+		valid = True
+		if not form_data.author:
+			form_data.author_error = 'please, enter your name'
+			valid = False
+		if not form_data.body:
+			form_data.body_error = 'please, write a comment'
+			valid = False
+		else:
+			error = validate_rst(form_data.body)
+			if error is not None:
+				(line, desc, ctx) = error
+				form_data.body_error = 'error at line %d: %s' \
+						% (line, desc)
+				valid = False
+		if valid:
 			c = article.add_comment(author, body, link)
 			c.save()
 			cdb = CommentDB(article)
 			cdb.comments = article.comments
 			cdb.save()
-			redirect += '-' + str(c.number)
-		render_html( [article], db, year, enable_comments,
-				redirect = redirect )
+			redirect = blog_url + '/post/' + uuid + '#comment-' \
+					+ str(c.number)
+		render_html( [article], db, year, enable_comments, redirect,
+				form_data )
 	else:
 		articles = db.get_articles(year, month, day, tags)
 		articles.sort(reverse = True)
