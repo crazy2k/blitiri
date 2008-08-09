@@ -456,7 +456,7 @@ class Templates (object):
 		vars['form_method'] = method
 		vars['form_action'] = action
 		return self.get_template(
-			'com_footer', default_comment_form, vars)
+			'com_form', default_comment_form, vars)
 
 
 class Comment (object):
