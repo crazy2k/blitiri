@@ -140,7 +140,7 @@ default_comment_header = """
 <div class="comment">
 <a name="comment-%(number)d" />
 <h3><a href="#comment-%(number)d">Comment #%(number)d</a></h3>
-<span class="cominfo">by <a href="%(link)s">%(author)s</a>
+<span class="cominfo">by %(linked_author)s
   on %(year)04d-%(month)02d-%(day)02d %(hour)02d:%(minute)02d</span>
 <p/>
 <div class="combody">
@@ -444,8 +444,14 @@ class Templates (object):
 			'art_footer', default_article_footer, article.to_vars())
 
 	def get_comment_header(self, comment):
+		vars = comment.to_vars()
+		if comment.link:
+			vars['linked_author'] = '<a href="%s">%s</a>' \
+					% (comment.link, comment.author)
+		else:
+			vars['linked_author'] = comment.author
 		return self.get_template(
-			'com_header', default_comment_header, comment.to_vars())
+			'com_header', default_comment_header, vars)
 
 	def get_comment_footer(self, comment):
 		return self.get_template(
