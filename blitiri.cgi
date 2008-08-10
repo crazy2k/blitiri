@@ -40,6 +40,34 @@ author = "Hartmut Kegan"
 # Article encoding
 encoding = "utf8"
 
+# Captcha class
+class Captcha (object):
+	def __init__(self, article):
+		self.article = article
+		words = article.title.split()
+		self.nword = hash(article.title) % len(words) % 5
+		self.answer = words[self.nword]
+		self.help = 'gotcha, damn spam bot!'
+
+	def get_puzzle(self):
+		nword = self.nword + 1
+		if nword == 1:
+			n = '1st'
+		elif nword == 2:
+			n = '2nd'
+		elif nword == 3:
+			n = '3rd'
+		else:
+			n = str(nword) + 'th'
+		return "enter the %s word of the article's title" % n
+	puzzle = property(fget = get_puzzle)
+
+	def validate(self, form_data):
+		if form_data.captcha.lower() == self.answer.lower():
+			return True
+		return False
+
+
 #
 # End of configuration
 # DO *NOT* EDIT ANYTHING PAST HERE
@@ -174,6 +202,12 @@ default_comment_form = """
     like <span class="formurlexample">http://www.example.com/</span>
     or <span class="formurlexample">mailto:you@example.com</span>
   </div>
+</div>
+<div class="comformcaptcha">
+  <label for="comformcaptcha">Your humanity proof %(form_captcha_error)s</label>
+  <input type="text" class="comformcaptcha" id="comformcaptcha"
+         name="comformcaptcha" value="%(form_captcha)s" />
+  <div class="comformhelp">%(captcha_puzzle)s</div>
 </div>
 <div class="comformbody">
   <label for="comformbody" class="comformbody">The comment
@@ -496,9 +530,10 @@ class Templates (object):
 		return self.get_template(
 			'com_footer', default_comment_footer, comment.to_vars())
 
-	def get_comment_form(self, article, form_data):
+	def get_comment_form(self, article, form_data, captcha_puzzle):
 		vars = article.to_vars()
 		vars.update(form_data.to_vars(self))
+		vars['captcha_puzzle'] = captcha_puzzle
 		return self.get_template(
 			'com_form', default_comment_form, vars)
 
@@ -508,12 +543,14 @@ class Templates (object):
 
 
 class CommentFormData (object):
-	def __init__(self, author = '', link = '', body = ''):
+	def __init__(self, author = '', link = '', captcha = '', body = ''):
 		self.author = author
 		self.link = link
+		self.captcha = captcha
 		self.body = body
 		self.author_error = ''
 		self.link_error = ''
+		self.captcha_error = ''
 		self.body_error = ''
 		self.action = ''
 		self.method = 'post'
@@ -522,14 +559,18 @@ class CommentFormData (object):
 		render_error = template.get_comment_error
 		a_error = self.author_error and render_error(self.author_error)
 		l_error = self.link_error and render_error(self.link_error)
+		c_error = self.captcha_error \
+				and render_error(self.captcha_error)
 		b_error = self.body_error and render_error(self.body_error)
 		return {
 			'form_author': sanitize(self.author),
 			'form_link': sanitize(self.link),
+			'form_captcha': sanitize(self.captcha),
 			'form_body': sanitize(self.body),
 
 			'form_author_error': a_error,
 			'form_link_error': l_error,
+			'form_captcha_error': c_error,
 			'form_body_error': b_error,
 
 			'form_action': self.action,
@@ -916,7 +957,8 @@ def render_comments(article, template, form_data):
 	if not form_data:
 		form_data = CommentFormData()
 	form_data.action = blog_url + '/comment/' + article.uuid + '#comment'
-	print template.get_comment_form(article, form_data)		,
+	captcha = Captcha(article)
+	print template.get_comment_form(article, form_data, captcha.puzzle)
 
 def render_html(articles, db, actyear = None, show_comments = False,
 		redirect =  None, form_data = None):
@@ -1049,6 +1091,7 @@ def handle_cgi():
 			uuid = uuid.replace('/', '')
 			author = form.getfirst('comformauthor', '')
 			link = form.getfirst('comformlink', '')
+			captcha = form.getfirst('comformcaptcha', '')
 			body = form.getfirst('comformbody', '')
 
 	db = ArticleDB(os.path.join(data_path, 'db'))
@@ -1066,8 +1109,9 @@ def handle_cgi():
 		render_artlist(articles, db)
 	elif comment:
 		form_data = CommentFormData(author.strip().replace('\n', ' '),
-				link.strip().replace('\n', ' '), body.strip())
+				link.strip().replace('\n', ' '), captcha, body)
 		article = db.get_article(uuid)
+		captcha = Captcha(article)
 		redirect = False
 		valid = True
 		if not form_data.author:
@@ -1081,6 +1125,9 @@ def handle_cgi():
 				form_data.link_error = 'please, enter a ' \
 						'valid link'
 				valid = False
+		if not captcha.validate(form_data):
+			form_data.captcha_error = captcha.help
+			valid = False
 		if not form_data.body:
 			form_data.body_error = 'please, write a comment'
 			valid = False
