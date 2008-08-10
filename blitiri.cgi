@@ -399,6 +399,24 @@ def validate_rst(rst):
 			desc = desc[:-1]
 		return (line, desc, context)
 
+def valid_link(link):
+	import re
+	mail_re = r"^[^ \t\n\r@<>()]+@[a-z0-9][a-z0-9\.\-_]*\.[a-z]+$"
+	scheme_re = r'^[a-zA-Z]+:'
+	url_re = r'^(?:[a-z0-9\-]+|[a-z0-9][a-z0-9\-\.\_]*\.[a-z]+)' \
+			r'(?::[0-9]+)?(?:/.*)?$'
+	scheme = ''
+	rest = link
+	if re.match(scheme_re, link, re.I):
+		scheme, rest = link.split(':', 1)
+	if (not scheme or scheme == 'mailto') and re.match(mail_re, rest, re.I):
+		return 'mailto:' + link
+	if not scheme and re.match(url_re, rest, re.I):
+		return 'http://' + rest
+	if scheme:
+		return link
+	return None
+
 def sanitize(obj):
 	if isinstance(obj, basestring):
 		return cgi.escape(obj, True)
@@ -1055,6 +1073,14 @@ def handle_cgi():
 		if not form_data.author:
 			form_data.author_error = 'please, enter your name'
 			valid = False
+		if form_data.link:
+			link = valid_link(form_data.link)
+			if link:
+				form_data.link = link
+			else:
+				form_data.link_error = 'please, enter a ' \
+						'valid link'
+				valid = False
 		if not form_data.body:
 			form_data.body_error = 'please, write a comment'
 			valid = False
