@@ -423,7 +423,7 @@ def validate_rst(rst):
 	except SystemMessage, e:
 		desc = e.args[0].encode('utf-8') # the error string
 		desc = desc[9:] # remove "<string>:"
-		line = int(desc[:desc.find(':')]) # get just the line number
+		line = int(desc[:desc.find(':')] or 0) # get the line number
 		desc = desc[desc.find(')')+2:-1] # remove (LEVEL/N)
 		try:
 			desc, context = desc.split('\n', 1)
@@ -1136,8 +1136,10 @@ def handle_cgi():
 			error = validate_rst(form_data.body)
 			if error is not None:
 				(line, desc, ctx) = error
-				form_data.body_error = 'error at line %d: %s' \
-						% (line, desc)
+				at = ''
+				if line:
+					at = ' at line %d' % line
+				form_data.body_error = 'error%s: %s' % (at, desc)
 				valid = False
 		if valid:
 			c = article.add_comment(form_data.author,
