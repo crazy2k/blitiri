@@ -1109,7 +1109,8 @@ def handle_cgi():
 		render_artlist(articles, db)
 	elif comment:
 		form_data = CommentFormData(author.strip().replace('\n', ' '),
-				link.strip().replace('\n', ' '), captcha, body)
+				link.strip().replace('\n', ' '), captcha,
+				body.replace('\r', ''))
 		article = db.get_article(uuid)
 		captcha = Captcha(article)
 		redirect = False
