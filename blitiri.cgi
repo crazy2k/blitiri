@@ -405,20 +405,22 @@ div.section h1 {
 """
 
 # helper functions
-def rst_to_html(rst):
+def rst_to_html(rst, secure = True):
 	settings = {
 		'input_encoding': encoding,
 		'output_encoding': 'utf8',
 		'halt_level': 1,
 		'traceback':  1,
+		'file_insertion_enabled': secure,
+		'raw_enabled': secure,
 	}
 	parts = publish_parts(rst, settings_overrides = settings,
 				writer_name = "html")
 	return parts['body'].encode('utf8')
 
-def validate_rst(rst):
+def validate_rst(rst, secure = True):
 	try:
-		rst_to_html(rst)
+		rst_to_html(rst, secure)
 		return None
 	except SystemMessage, e:
 		desc = e.args[0].encode('utf-8') # the error string
@@ -1133,7 +1135,7 @@ def handle_cgi():
 			form_data.body_error = 'please, write a comment'
 			valid = False
 		else:
-			error = validate_rst(form_data.body)
+			error = validate_rst(form_data.body, secure=False)
 			if error is not None:
 				(line, desc, ctx) = error
 				at = ''
