@@ -1139,7 +1139,8 @@ def handle_cgi():
 						% (line, desc)
 				valid = False
 		if valid:
-			c = article.add_comment(author, body, link)
+			c = article.add_comment(form_data.author,
+					form_data.body, form_data.link)
 			c.save()
 			cdb = CommentDB(article)
 			cdb.comments = article.comments
