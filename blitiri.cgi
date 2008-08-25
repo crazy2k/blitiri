@@ -1056,6 +1056,7 @@ def handle_cgi():
 	atom = False
 	style = False
 	post = False
+	post_preview = False
 	artlist = False
 	comment = False
 
@@ -1065,10 +1066,11 @@ def handle_cgi():
 		atom = path_info == '/atom'
 		tag = path_info.startswith('/tag/')
 		post = path_info.startswith('/post/')
+		post_preview = path_info.startswith('/preview/post/')
 		artlist = path_info.startswith('/list')
 		comment = path_info.startswith('/comment/') and enable_comments
-		if not style and not atom and not post and not tag \
-				and not comment and not artlist:
+		if not style and not atom and not post and not post_preview \
+				and not tag and not comment and not artlist:
 			date = path_info.split('/')[1:]
 			try:
 				if len(date) > 1 and date[0]:
@@ -1082,6 +1084,15 @@ def handle_cgi():
 		elif post:
 			uuid = path_info.replace('/post/', '')
 			uuid = uuid.replace('/', '')
+		elif post_preview:
+			art_path = path_info.replace('/preview/post/', '')
+			art_path = urllib.unquote_plus(art_path)
+			art_path = os.path.join(data_path, art_path)
+			art_path = os.path.realpath(art_path)
+			common = os.path.commonprefix([data_path, art_path])
+			if common != data_path: # something nasty happened
+				post_preview = False
+			art_path = art_path[len(data_path)+1:]
 		elif tag:
 			t = path_info.replace('/tag/', '')
 			t = t.replace('/', '')
@@ -1105,6 +1116,10 @@ def handle_cgi():
 		render_style()
 	elif post:
 		render_html( [db.get_article(uuid)], db, year, enable_comments )
+	elif post_preview:
+		article = Article(art_path, datetime.datetime.now(),
+					datetime.datetime.now())
+		render_html( [article], db, year, enable_comments )
 	elif artlist:
 		articles = db.get_articles()
 		articles.sort(cmp = Article.title_cmp)
