@@ -1251,7 +1251,10 @@ def handle_cmd():
 
 
 if os.environ.has_key('GATEWAY_INTERFACE'):
+	i = datetime.datetime.now()
 	handle_cgi()
+	f = datetime.datetime.now()
+	print '<!-- render time: %s -->' % (f-i)
 else:
 	sys.exit(handle_cmd())
 
