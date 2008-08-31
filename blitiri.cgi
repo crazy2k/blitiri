@@ -1177,7 +1177,8 @@ def handle_cgi():
 				at = ''
 				if line:
 					at = ' at line %d' % line
-				form_data.body_error = 'error%s: %s' % (at, desc)
+				form_data.body_error = 'error%s: %s' \
+						% (at, desc)
 				valid = False
 		if valid:
 			c = article.add_comment(form_data.author,
