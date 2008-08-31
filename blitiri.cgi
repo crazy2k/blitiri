@@ -24,6 +24,10 @@ comments_path = "/tmp/blog/comments"
 # default templates. If they're not found, the built-in ones will be used.
 templates_path = "/tmp/blog/templates"
 
+# Path where the cache is stored (must be writeable by the web server)
+# If None is specified, cache is disabled
+cache_path = "/tmp/blog/cache"
+
 # URL to the blog, including the name. Can be a full URL or just the path.
 blog_url = "/blog/blitiri.cgi"
 
@@ -404,6 +408,22 @@ div.section h1 {
 
 """
 
+# Cache decorator
+def cached(f):
+	def decorate(obj, *args, **kwargs):
+		if cache_path is None: # cache disabled
+			s = f(obj, *args, **kwargs)
+		else:
+			cache_file = os.path.join(cache_path,
+					'blitiri.cache.%s.html' % hash(obj))
+			try:
+				s = open(cache_file).read()
+			except:
+				s = f(obj, *args, **kwargs)
+				open(cache_file, 'w').write(s)
+		return s
+	return decorate
+
 # helper functions
 def rst_to_html(rst, secure = True):
 	settings = {
@@ -417,6 +437,7 @@ def rst_to_html(rst, secure = True):
 	parts = publish_parts(rst, settings_overrides = settings,
 				writer_name = "html")
 	return parts['body'].encode('utf8')
+rst_to_html = cached(rst_to_html)
 
 def validate_rst(rst, secure = True):
 	try:
