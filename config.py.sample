@@ -20,8 +20,11 @@ comments_path = "/tmp/blog/comments"
 # default templates. If they're not found, the built-in ones will be used.
 templates_path = "/tmp/blog/templates"
 
-# Path where the cache is stored (must be writeable by the web server)
-cache_path = "/tmp/blog/cache"
+# Path where the cache is stored (must be writeable by the web server);
+# set to None to disable. When enabled, you must take care of cleaning it up
+# every once in a while.
+#cache_path = "/tmp/blog/cache"
+cache_path = None
 
 # URL to the blog, including the name. Can be a full URL or just the path.
 blog_url = "/blog/blitiri.cgi"
