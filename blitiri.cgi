@@ -410,21 +410,29 @@ div.section h1 {
 
 """
 
+
 # Cache decorator
+# It only works if the function is pure (that is, its return value depends
+# only on its arguments), and if all the arguments are hash()eable.
 def cached(f):
-	def decorate(obj, *args, **kwargs):
-		if cache_path is None: # cache disabled
-			s = f(obj, *args, **kwargs)
-		else:
-			cache_file = os.path.join(cache_path,
-					'blitiri.cache.%s.html' % hash(obj))
-			try:
-				s = open(cache_file).read()
-			except:
-				s = f(obj, *args, **kwargs)
-				open(cache_file, 'w').write(s)
+	# do not decorate if the cache is disabled
+	if cache_path is None:
+		return f
+
+	def decorate(*args, **kwargs):
+		hashes = '-'.join( str(hash(x)) for x in args +
+				tuple(kwargs.items()) )
+		fname = 'blitiri.%s.%s.cache' % (f.__name__, hashes)
+		cache_file = os.path.join(cache_path, fname)
+		try:
+			s = open(cache_file).read()
+		except:
+			s = f(*args, **kwargs)
+			open(cache_file, 'w').write(s)
 		return s
+
 	return decorate
+
 
 # helper functions
 def rst_to_html(rst, secure = True):
