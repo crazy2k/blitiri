@@ -46,32 +46,10 @@ author = "Hartmut Kegan"
 # Article encoding
 encoding = "utf8"
 
-# Captcha class
-class Captcha (object):
-	def __init__(self, article):
-		self.article = article
-		words = article.title.split()
-		self.nword = hash(article.title) % len(words) % 5
-		self.answer = words[self.nword]
-		self.help = 'gotcha, damn spam bot!'
-
-	@property
-	def puzzle(self):
-		nword = self.nword + 1
-		if nword == 1:
-			n = '1st'
-		elif nword == 2:
-			n = '2nd'
-		elif nword == 3:
-			n = '3rd'
-		else:
-			n = str(nword) + 'th'
-		return "enter the %s word of the article's title" % n
-
-	def validate(self, form_data):
-		if form_data.captcha.lower() == self.answer.lower():
-			return True
-		return False
+# Captcha method to use. At the moment only "title" is supported, but if you
+# are keen with Python you can provide your own captcha implementation, see
+# below for details.
+captcha_method = "title"
 
 
 #
@@ -106,6 +84,84 @@ except:
 # Pimp *_path config variables to support relative paths
 data_path = os.path.realpath(data_path)
 templates_path = os.path.realpath(templates_path)
+
+
+#
+# Captcha classes
+#
+# They must follow the interface described below.
+#
+# Constructor:
+# 	Captcha(article) -> constructor, takes an article[1] as argument
+# Attributes:
+# 	puzzle -> a string with the puzzle the user must solve to prove he is
+# 	          not a bot (can be raw HTML)
+# 	help -> a string with extra instructions, shown only when the user
+# 	        failed to solve the puzzle
+# Methods:
+#	validate(form_data) -> based on the form data[2],  returns True if
+#	                       the user has solved the puzzle uccessfully
+#	                       (False otherwise).
+#
+# Note you must ensure that the puzzle attribute and validate() method can
+# "communicate" because they are executed in different requests. You can pass a
+# cookie or just calculate the answer based on the article's data, for example.
+#
+# [1] article is an object with all the article's information:
+# 	path -> string
+# 	created -> datetime
+# 	updated -> datetime
+# 	uuid -> string (unique ID)
+# 	title -> string
+# 	author -> string
+# 	tags -> list of strings
+# 	raw_contents -> string in rst format
+# 	comments -> list of Comment objects (not too relevant here)
+# [2] form_data is an object with the form fields (all strings):
+# 	author, author_error
+# 	link, link_error
+# 	catpcha, captcha_error
+# 	body, body_error
+# 	action, method
+
+class TitleCaptcha (object):
+	"Captcha that uses the article's title for the puzzle"
+	def __init__(self, article):
+		self.article = article
+		words = article.title.split()
+		self.nword = hash(article.title) % len(words) % 5
+		self.answer = words[self.nword]
+		self.help = 'gotcha, damn spam bot!'
+
+	@property
+	def puzzle(self):
+		nword = self.nword + 1
+		if nword == 1:
+			n = '1st'
+		elif nword == 2:
+			n = '2nd'
+		elif nword == 3:
+			n = '3rd'
+		else:
+			n = str(nword) + 'th'
+		return "enter the %s word of the article's title" % n
+
+	def validate(self, form_data):
+		if form_data.captcha.lower() == self.answer.lower():
+			return True
+		return False
+
+known_captcha_methods = {
+	'title': TitleCaptcha,
+}
+
+# If the configured captcha method was a known string, replace it by the
+# matching class; otherwise assume it's already a class and leave it
+# alone. This way the user can either use one of our methods, or provide one
+# of his/her own.
+if captcha_method in known_captcha_methods:
+	captcha_method = known_captcha_methods[captcha_method]
+
 
 # Default template
 
@@ -986,7 +1042,7 @@ def render_comments(article, template, form_data):
 	if not form_data:
 		form_data = CommentFormData()
 	form_data.action = blog_url + '/comment/' + article.uuid + '#comment'
-	captcha = Captcha(article)
+	captcha = captcha_method(article)
 	print template.get_comment_form(article, form_data, captcha.puzzle)
 
 def render_html(articles, db, actyear = None, show_comments = False,
@@ -1156,7 +1212,7 @@ def handle_cgi():
 				link.strip().replace('\n', ' '), captcha,
 				body.replace('\r', ''))
 		article = db.get_article(uuid)
-		captcha = Captcha(article)
+		captcha = captcha_method(article)
 		redirect = False
 		valid = True
 		if not form_data.author:
