@@ -55,7 +55,8 @@ class Captcha (object):
 		self.answer = words[self.nword]
 		self.help = 'gotcha, damn spam bot!'
 
-	def get_puzzle(self):
+	@property
+	def puzzle(self):
 		nword = self.nword + 1
 		if nword == 1:
 			n = '1st'
@@ -66,7 +67,6 @@ class Captcha (object):
 		else:
 			n = str(nword) + 'th'
 		return "enter the %s word of the article's title" % n
-	puzzle = property(fget = get_puzzle)
 
 	def validate(self, form_data):
 		if form_data.captcha.lower() == self.answer.lower():
@@ -435,6 +435,7 @@ def cached(f):
 
 
 # helper functions
+@cached
 def rst_to_html(rst, secure = True):
 	settings = {
 		'input_encoding': encoding,
@@ -447,7 +448,6 @@ def rst_to_html(rst, secure = True):
 	parts = publish_parts(rst, settings_overrides = settings,
 				writer_name = "html")
 	return parts['body'].encode('utf8')
-rst_to_html = cached(rst_to_html)
 
 def validate_rst(rst, secure = True):
 	try:
@@ -627,25 +627,23 @@ class Comment (object):
 		self._link = ''
 		self._raw_content = 'Removed comment'
 
-
-	def get_author(self):
+	@property
+	def author(self):
 		if not self.loaded:
 			self.load()
 		return self._author
-	author = property(fget = get_author)
 
-	def get_link(self):
+	@property
+	def link(self):
 		if not self.loaded:
 			self.load()
 		return self._link
-	link = property(fget = get_link)
 
-	def get_raw_content(self):
+	@property
+	def raw_content(self):
 		if not self.loaded:
 			self.load()
 		return self._raw_content
-	raw_content = property(fget = get_raw_content)
-
 
 	def set(self, author, raw_content, link = '', created = None):
 		self.loaded = True
@@ -769,37 +767,35 @@ class Article (object):
 		self._raw_content = ''
 		self._comments = []
 
-
-	def get_title(self):
+	@property
+	def title(self):
 		if not self.loaded:
 			self.load()
 		return self._title
-	title = property(fget = get_title)
 
-	def get_author(self):
+	@property
+	def author(self):
 		if not self.loaded:
 			self.load()
 		return self._author
-	author = property(fget = get_author)
 
-	def get_tags(self):
+	@property
+	def tags(self):
 		if not self.loaded:
 			self.load()
 		return self._tags
-	tags = property(fget = get_tags)
 
-	def get_raw_content(self):
+	@property
+	def raw_content(self):
 		if not self.loaded:
 			self.load()
 		return self._raw_content
-	raw_content = property(fget = get_raw_content)
 
-	def get_comments(self):
+	@property
+	def comments(self):
 		if not self.loaded:
 			self.load()
 		return self._comments
-	comments = property(fget = get_comments)
-
 
 	def __cmp__(self, other):
 		if self.path == other.path:
