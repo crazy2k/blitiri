@@ -1218,7 +1218,7 @@ def handle_cgi():
 		articles = db.get_articles()
 		articles.sort(cmp = Article.title_cmp)
 		render_artlist(articles, db)
-	elif comment:
+	elif comment and enable_comments:
 		form_data = CommentFormData(author.strip().replace('\n', ' '),
 				link.strip().replace('\n', ' '), captcha,
 				body.replace('\r', ''))
