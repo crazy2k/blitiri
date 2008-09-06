@@ -615,9 +615,9 @@ class Templates (object):
 		vars = comment.to_vars()
 		if comment.link:
 			vars['linked_author'] = '<a href="%s">%s</a>' \
-					% (comment.link, comment.author)
+					% (vars['link'], vars['author'])
 		else:
-			vars['linked_author'] = comment.author
+			vars['linked_author'] = vars['author']
 		return self.get_template(
 			'com_header', default_comment_header, vars)
 
