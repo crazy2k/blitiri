@@ -524,20 +524,28 @@ def validate_rst(rst, secure = True):
 
 def valid_link(link):
 	import re
-	mail_re = r"^[^ \t\n\r@<>()]+@[a-z0-9][a-z0-9\.\-_]*\.[a-z]+$"
 	scheme_re = r'^[a-zA-Z]+:'
+	mail_re = r"^[^ \t\n\r@<>()]+@[a-z0-9][a-z0-9\.\-_]*\.[a-z]+$"
 	url_re = r'^(?:[a-z0-9\-]+|[a-z0-9][a-z0-9\-\.\_]*\.[a-z]+)' \
 			r'(?::[0-9]+)?(?:/.*)?$'
-	scheme = ''
-	rest = link
+
 	if re.match(scheme_re, link, re.I):
 		scheme, rest = link.split(':', 1)
-	if (not scheme or scheme == 'mailto') and re.match(mail_re, rest, re.I):
+		# if we have an scheme and a rest, assume the link is valid
+		# and return it as-is; otherwise (having just the scheme) is
+		# invalid
+		if rest:
+			return link
+		return None
+
+	# at this point, we don't have a scheme; we will try to recognize some
+	# common addresses (mail and http at the moment) and complete them to
+	# form a valid link, if we fail we will just claim it's invalid
+	if re.match(mail_re, link, re.I):
 		return 'mailto:' + link
-	if not scheme and re.match(url_re, rest, re.I):
-		return 'http://' + rest
-	if scheme:
-		return link
+	elif re.match(url_re, link, re.I):
+		return 'http://' + link
+
 	return None
 
 def sanitize(obj):
