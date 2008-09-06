@@ -1068,7 +1068,7 @@ def render_artlist(articles, db, actyear = None):
 	print template.get_main_header()
 	print '<h2>Articles</h2>'
 	for a in articles:
-		print '<li><a href="%(url)s/uuid/%(uuid)s">%(title)s</a></li>' \
+		print '<li><a href="%(url)s/post/%(uuid)s">%(title)s</a></li>' \
 			% {	'url': blog_url,
 				'uuid': a.uuid,
 				'title': a.title,
