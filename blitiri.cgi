@@ -775,6 +775,11 @@ class Comment (object):
 class CommentDB (object):
 	def __init__(self, article):
 		self.path = os.path.join(comments_path, article.uuid)
+		# if comments were enabled after the article was added, we
+		# will need to create the directory
+		if not os.path.exists(self.path):
+			os.mkdir(self.path, 0755)
+
 		self.comments = []
 		self.load(article)
 
