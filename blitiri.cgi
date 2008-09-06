@@ -549,9 +549,7 @@ def valid_link(link):
 	return None
 
 def sanitize(obj):
-	if isinstance(obj, basestring):
-		return cgi.escape(obj, True)
-	return obj
+	return cgi.escape(obj, quote = True)
 
 
 # find out our URL, needed for syndication
