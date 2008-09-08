@@ -1125,9 +1125,9 @@ def render_atom(articles):
     <published>%(ciso)sZ</published>
     <updated>%(uiso)sZ</updated>
     <content type="xhtml">
-      <div xmlns="http://www.w3.org/1999/xhtml"><p>
+      <div xmlns="http://www.w3.org/1999/xhtml">
 %(contents)s
-      </p></div>
+      </div>
     </content>
   </entry>
 		""" % vars
