@@ -202,7 +202,7 @@ default_article_header = """
 <div class="article">
 <h2><a href="%(url)s/post/%(uuid)s">%(arttitle)s</a></h2>
 <span class="artinfo">
-  by %(author)s on <span class="date">
+  by <span class="author">%(author)s</span> on <span class="date">
 
 <a class="date" href="%(url)s/%(cyear)d/">%(cyear)04d</a>-\
 <a class="date" href="%(url)s/%(cyear)d/%(cmonth)d/">%(cmonth)02d</a>-\
@@ -212,10 +212,12 @@ default_article_header = """
 <a class="date" href="%(url)s/%(uyear)d/">%(uyear)04d</a>-\
 <a class="date" href="%(url)s/%(uyear)d/%(umonth)d/">%(umonth)02d</a>-\
 <a class="date" href="%(url)s/%(uyear)d/%(umonth)d/%(uday)d/">%(uday)02d</a>\
-    %(uhour)02d:%(uminute)02d)</span><br/>
+    %(uhour)02d:%(uminute)02d)</span>
+<div class="tagsandcomments">
   <span class="tags">tagged %(tags)s</span> -
   <span class="comments">with %(comments)s
     <a href="%(url)s/post/%(uuid)s#comments">comment(s)</a></span>
+</div>
 </span><br/>
 <p/>
 <div class="artbody">
@@ -299,8 +301,10 @@ default_comment_error = '<span class="comformerror">(%(error)s)</span>'
 default_css = """
 body {
 	font-family: sans-serif;
-	font-size: small;
+	font-size: medium;
 	width: 52em;
+	margin-left: auto;
+	margin-right: auto;
 }
 
 div.content {
@@ -308,21 +312,22 @@ div.content {
 }
 
 h1 {
-	font-size: large;
-	border-bottom: 2px solid #99F;
+	font-size: xx-large;
+	#border-bottom: 2px solid #99F;
 	width: 100%;
 	margin-bottom: 1em;
+	text-align: center;
 }
 
 h2 {
-	font-size: medium;
+	font-size: x-large;
 	font-weigth: none;
 	margin-bottom: 1pt;
 	border-bottom: 1px solid #99C;
 }
 
 h3 {
-	font-size: small;
+	font-size: large;
 	font-weigth: none;
 	margin-bottom: 1pt;
 	border-bottom: 1px solid #99C;
@@ -334,7 +339,12 @@ h1 a, h2 a, h3 a {
 }
 
 span.artinfo {
-	font-size: xx-small;
+	font-size: small;
+	color: #909090;
+}
+
+span.author {
+	font-style: italic;
 }
 
 span.artinfo a {
@@ -347,12 +357,24 @@ span.artinfo a:hover {
 	color: blue;
 }
 
+div.tagsandcomments {
+	float: right;
+}
+
 div.artbody {
 	margin-left: 1em;
 }
 
 div.article {
 	margin-bottom: 2em;
+}
+
+div.artbody blockquote {
+	border-left: 0.2em solid #99C;
+	color: #445;
+	margin-left: 1em;
+	margin-right: 4em;
+	padding-left: 0.5em;
 }
 
 span.cominfo {
