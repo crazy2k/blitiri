@@ -68,7 +68,7 @@ import calendar
 import zlib
 import urllib
 import cgi
-from docutils.core import publish_parts
+from docutils.core import publish_parts, publish_string
 from docutils.utils import SystemMessage
 
 # Before importing the config, add our cwd to the Python path
@@ -504,6 +504,19 @@ def rst_to_html(rst, secure = True):
 	parts = publish_parts(rst, settings_overrides = settings,
 				writer_name = "html")
 	return parts['body'].encode('utf8')
+
+def rst_to_tex(rst, secure = True):
+	settings = {
+		'input_encoding': encoding,
+		'output_encoding': 'utf8',
+		'halt_level': 1,
+		'traceback':  1,
+		'file_insertion_enabled': secure,
+		'raw_enabled': secure,
+	}
+	return publish_string(rst, settings_overrides = settings,
+				writer_name = "latex2e")
+
 
 def validate_rst(rst, secure = True):
 	try:
@@ -1276,18 +1289,20 @@ def usage():
 	print 'Usage: %s {add|rm|update} article_path' % sys.argv[0]
 
 def handle_cmd():
-	if len(sys.argv) != 3:
+	if len(sys.argv) not in [3, 4]:
 		usage()
 		return 1
 
 	cmd = sys.argv[1]
-	art_path = os.path.realpath(sys.argv[2])
 
-	if os.path.commonprefix([data_path, art_path]) != data_path:
-		print "Error: article (%s) must be inside data_path (%s)" % \
-				(art_path, data_path)
-		return 1
-	art_path = art_path[len(data_path)+1:]
+	if cmd in ["add", "rm", "update"]:
+			art_path = os.path.realpath(sys.argv[2])
+
+			if os.path.commonprefix([data_path, art_path]) != data_path:
+				print "Error: article (%s) must be inside data_path (%s)" % \
+						(art_path, data_path)
+				return 1
+			art_path = art_path[len(data_path)+1:]
 
 	db_filename = os.path.join(data_path, 'db')
 	if not os.path.isfile(db_filename):
@@ -1338,6 +1353,29 @@ def handle_cmd():
 			return 1
 		a.updated = datetime.datetime.now()
 		db.save()
+	elif cmd == "tex":
+		iyear, imonth, iday = map(int, sys.argv[2].split("/"))
+		fyear, fmonth, fday = map(int, sys.argv[3].split("/"))
+
+		itime = datetime.datetime(iyear, imonth, iday)
+		ftime = datetime.datetime(fyear, fmonth, fday, 23, 59, 59)
+
+		def in_range(date):
+			return itime <= date and date <= ftime
+
+		arts = [art for art in db.get_articles() if in_range(art.created)]
+		arts.sort(key = lambda art: art.created)
+
+		s = ""
+		n_arts = len(arts)
+		for i, art in enumerate(arts):
+			title = "%s\n%s" % (art.title, "".ljust(len(art.title), "="))
+
+			s += "%s\n\n%s\n\n" % (title, art.raw_content)
+			s += "\n"
+
+		print rst_to_tex(s)
+
 	else:
 		usage()
 		return 1
